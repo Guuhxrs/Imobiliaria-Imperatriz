@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Imperatriz Imóveis</title>
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <script src="./app-config.js"></script>
+</head>
+<body>
+  <div id="app">
+<<<<<<< HEAD
+    <p style="padding: 20px;">Carregando...</p>
+  </div>
+=======
+    <div style="padding: 50px; text-align: center; font-family: sans-serif;">
+      <h1>Carregando Imperatriz Imóveis...</h1>
+      <div id="debug-info" style="margin-top: 20px; padding: 10px; background: #f0f0f0; text-align: left; font-size: 12px;"></div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('debug-info').innerHTML = 
+      'app-config: ' + (typeof window.__APP_CONFIG__ !== 'undefined' ? 'OK' : 'NÃO CARREGADO') + 
+      '<br>main.js: carregando...';
+  </script>
+>>>>>>> 81ab70162184a5c5080e454cb549e197e4658ab8
+  <script type="module" src="./main.js"></script>
+  <script>
+    setTimeout(() => {
+      const debug = document.getElementById('debug-info');
+      if (debug) {
+        debug.innerHTML += '<br>Timeout: script pode ter falhado';
+      }
+    }, 3000);
+  </script>
+</body>
+</html>

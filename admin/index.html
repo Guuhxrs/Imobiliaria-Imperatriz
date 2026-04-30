@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin | Imperatriz Imoveis</title>
+  <link rel="stylesheet" href="../src/styles/admin.css" />
+  <script src="../app-config.js"></script>
+</head>
+<body class="login-body">
+  <p style="padding: 20px;">Carregando...</p>
+  <script type="module">
+    import { getAdministradorAutenticado } from "../src/api/administradores.js";
+
+    try {
+      const session = await getAdministradorAutenticado({ force: true });
+      const target = session ? "./dashboard.html" : "./login.html";
+      window.location.replace(new URL(target, window.location.href).toString());
+    } catch (e) {
+      window.location.replace(new URL("./login.html", window.location.href).toString());
+    }
+  </script>
+</body>
+</html>
