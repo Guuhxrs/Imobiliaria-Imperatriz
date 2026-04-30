@@ -55,6 +55,21 @@ export function logoutAdministrador() {
   sessionStorage.removeItem(SESSION_KEY);
 }
 
+export async function getQuantidadeAdministradores() {
+  const supabase = getSupabaseClient();
+  if (!supabase) return 0;
+  
+  const { count, error } = await supabase
+    .from("administradores")
+    .select("*", { count: "exact", head: true });
+  
+  if (error) {
+    console.error("Erro ao contar administradores:", error);
+    return 0;
+  }
+  return count || 0;
+}
+
 export async function criarAdministrador({ email, senha, nome }) {
   const supabase = getSupabaseClient();
   
