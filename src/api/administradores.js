@@ -16,8 +16,13 @@ export async function hashSenha(senha) {
 }
 
 export async function autenticarAdministrador({ email, senha }) {
+  console.log("[AdminAuth] Iniciando autenticação para:", email);
+  
   const senhaHash = await hashSenha(senha);
+  console.log("[AdminAuth] Hash da senha calculado:", senhaHash.substring(0, 20) + "...");
+  
   const supabase = getSupabaseClient();
+  console.log("[AdminAuth] Supabase client:", supabase ? "OK" : "NULO");
 
   if (!supabase) {
     throw new Error("Supabase não configurado. Contate o administrador.");
@@ -30,7 +35,10 @@ export async function autenticarAdministrador({ email, senha }) {
     .eq("senha_hash", senhaHash)
     .single();
 
+  console.log("[AdminAuth] Resultado query:", { data, error });
+
   if (error || !data) {
+    console.error("[AdminAuth] Erro na query:", error);
     throw new Error("Credenciais inválidas para administrador.");
   }
 
