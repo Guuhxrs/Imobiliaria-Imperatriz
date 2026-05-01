@@ -19,6 +19,7 @@ import {
   removerImovel,
   uploadImagem,
   validarAdministradorPorAccessToken,
+  supabase,
 } from "./supabase.js";
 import {
   clearSessionCookie,
@@ -100,6 +101,22 @@ function asyncHandler(handler) {
 app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
+
+app.get(
+  "/api/health-db",
+  asyncHandler(async (req, res) => {
+    const { count, error } = await supabase
+      .from("imoveis")
+      .select("*", { count: "exact", head: true });
+    
+    if (error) {
+      res.status(500).json({ ok: false, error: error.message });
+      return;
+    }
+    
+    res.json({ ok: true, imoveis: count });
+  })
+);
 
 app.get(
   "/api/admin/bootstrap-status",

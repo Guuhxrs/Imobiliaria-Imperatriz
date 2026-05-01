@@ -1,12 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "./config.js";
 
+console.log("[Supabase] Inicializando com URL:", config.supabaseUrl);
+console.log("[Supabase] Service Role Key presente:", !!config.supabaseServiceRoleKey);
+console.log("[Supabase] Service Role Key prefix:", config.supabaseServiceRoleKey ? config.supabaseServiceRoleKey.substring(0, 20) : "N/A");
+
 const supabase = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
   },
 });
+
+export { supabase };
 
 const IMOVEIS_TABLE = "imoveis";
 const IMAGENS_TABLE = "imagens_imovel";
