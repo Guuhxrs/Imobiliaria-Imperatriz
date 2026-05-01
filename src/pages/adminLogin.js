@@ -74,8 +74,8 @@ export function bindAdminLoginEvents() {
       status.className = "login-status success";
       setTimeout(() => { window.location.hash = "#admin"; }, 500);
     } catch (error) {
-      console.error(error);
-      status.textContent = "Falha no login. Verifique e-mail e senha.";
+      console.error("Erro login:", error?.message || error);
+      status.textContent = error?.message || "Falha no login. Verifique e-mail e senha.";
       status.className = "login-status error";
       if (btn) btn.disabled = false;
     }

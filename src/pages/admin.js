@@ -123,15 +123,20 @@ export async function bindAdminPageEvents() {
   };
 
 
-  const adminLogado = getAdministradorAutenticado();
+  const adminLogado = await getAdministradorAutenticado({ force: true });
   if (!adminLogado) {
     window.location.hash = "#admin-login";
     return;
   }
 
-  logoutBtn.addEventListener("click", () => {
-    logoutAdministrador();
-    window.location.hash = "#admin-login";
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await logoutAdministrador();
+    } catch (error) {
+      console.error("Erro logout:", error?.message || error);
+    } finally {
+      window.location.hash = "#admin-login";
+    }
   });
 
   const clearForm = () => {

@@ -14,18 +14,16 @@ function buildGmailLink(contato) {
     `Recebemos sua mensagem:\n` +
     `"${contato.mensagem || ""}"\n\n` +
     `Em breve entraremos em contato com mais informações.\n\n` +
-    `\n--\n` +
     `Equipe Imperatriz Imóveis\n` +
     `Telefone: (12) 99608-9901\n` +
     `Instagram: @Imperatrizimoveis_sjc`
   );
-  return `https://mail.google.com/mail/?to=${email}&subject=${subject}&body=${body}`;
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${email}&su=${subject}&body=${body}`;
 }
 
 function renderMensagemItem(contato) {
   const lidaClass = contato.respondido ? "is-read" : "is-unread";
   const lidaLabel = contato.respondido ? "Respondido" : "Pendente";
-
   const contatoJson = JSON.stringify(contato).replace(/'/g, "&apos;");
 
   return `
@@ -37,13 +35,13 @@ function renderMensagemItem(contato) {
         </div>
         <span class="mensagem-badge ${lidaClass}">${lidaLabel}</span>
       </div>
-      <p class="mensagem-preview">${escapeHtml(contato.mensagem?.substring(0, 100) || "")}...</p>
+      <p class="mensagem-preview">${escapeHtml(contato.mensagem?.substring(0, 130) || "")}${contato.mensagem?.length > 130 ? "..." : ""}</p>
       <div class="mensagem-footer">
         <span class="mensagem-data">${formatDateBR(contato.created_at)}</span>
         <div class="mensagens-actions">
           <button type="button" class="ghost-button btn-ver-detalhes" data-id="${contato.id}">Ver detalhes</button>
-          ${!contato.respondido ? `<button type="button" class="primary-button btn-marcar" data-id="${contato.id}">Marcar como Respondido</button>` : ""}
-          <button type="button" class="ghost-button btn-responder" data-contato='${contatoJson}'>Responder por email</button>
+          ${!contato.respondido ? `<button type="button" class="primary-button btn-marcar" data-id="${contato.id}">Marcar respondido</button>` : ""}
+          <button type="button" class="ghost-button btn-responder" data-contato='${contatoJson}'>Responder</button>
         </div>
       </div>
     </article>
@@ -57,13 +55,12 @@ function renderModalDetalhes(contato) {
       <div class="modal-content">
         <div class="modal-header">
           <h3>Mensagem de ${escapeHtml(contato.nome)}</h3>
-          <button type="button" class="ghost-button btn-fechar-modal">X</button>
+          <button type="button" class="ghost-button btn-fechar-modal">Fechar</button>
         </div>
         <div class="modal-body">
           <p><strong>Email:</strong> <a href="mailto:${escapeHtml(contato.email)}">${escapeHtml(contato.email)}</a></p>
           <p><strong>Data:</strong> ${formatDateBR(contato.created_at)}</p>
           <p><strong>Status:</strong> ${contato.respondido ? "Respondido" : "Pendente"}</p>
-          <hr />
           <div class="mensagem-completa">
             <strong>Mensagem:</strong>
             <p>${escapeHtml(contato.mensagem)}</p>
@@ -71,8 +68,7 @@ function renderModalDetalhes(contato) {
         </div>
         <div class="modal-footer">
           <button type="button" class="primary-button btn-responder" data-contato='${contatoJson}'>Responder por email</button>
-          ${!contato.respondido ? `<button type="button" class="primary-button btn-marcar-modal" data-id="${contato.id}">Marcar como Respondido</button>` : ""}
-          <button type="button" class="ghost-button btn-fechar-modal">Fechar</button>
+          ${!contato.respondido ? `<button type="button" class="primary-button btn-marcar-modal" data-id="${contato.id}">Marcar respondido</button>` : ""}
         </div>
       </div>
     </div>
@@ -81,14 +77,14 @@ function renderModalDetalhes(contato) {
 
 function renderPage(contatos) {
   const total = contatos.length;
-  const pendentes = contatos.filter(c => !c.respondido).length;
+  const pendentes = contatos.filter((contato) => !contato.respondido).length;
 
   return renderAdminLayout({
     active: "mensagens",
     title: "Mensagens",
-    subtitle: `${total} mensagem(ns), ${pendentes} pendente(s)`,
+    subtitle: `${total} mensagem(ns), ${pendentes} pendente(s).`,
     session,
-    actions: '<button type="button" class="danger-button" id="btn-limpar">Limpar mensagens antigas (30+ dias)</button>',
+    actions: '<button type="button" class="danger-button" id="btn-limpar">Limpar antigas</button>',
     content: `
       <section class="mensagens-list">
         ${contatos.length === 0 ? `
@@ -98,31 +94,35 @@ function renderPage(contatos) {
         ` : contatos.map(renderMensagemItem).join("")}
       </section>
       <div id="modal-detalhes"></div>
-      <p id="limpar-feedback"></p>
+      <p id="limpar-feedback" class="feedback"></p>
     `,
   });
 }
 
 function handleVerDetalhes(id) {
-  const contato = contatosCache.find(c => c.id === id);
+  const contato = contatosCache.find((item) => item.id === id);
   if (!contato) return;
   const modal = document.getElementById("modal-detalhes");
   if (modal) modal.innerHTML = renderModalDetalhes(contato);
 }
 
-function handleMarcarRespondido(id, reload = true) {
-  atualizarContatoStatus(id, true).then(() => {
-    if (reload) window.location.reload();
-  });
+async function handleMarcarRespondido(id) {
+  await atualizarContatoStatus(id, true);
+  contatosCache = await getContatos();
+  const app = document.getElementById("admin-app");
+  if (app) {
+    app.innerHTML = renderPage(contatosCache);
+    bindAdminLayout();
+    bindPageEvents();
+  }
 }
 
 function handleResponderEmail(contatoStr) {
   try {
     const contato = JSON.parse(contatoStr.replace(/&apos;/g, "'"));
-    const url = buildGmailLink(contato);
-    window.open(url, "_blank");
-  } catch (e) {
-    console.error("Erro ao abrir email:", e);
+    window.open(buildGmailLink(contato), "_blank");
+  } catch (error) {
+    console.error("Erro ao abrir email:", error);
   }
 }
 
@@ -131,52 +131,27 @@ function handleFecharModal() {
   if (modal) modal.innerHTML = "";
 }
 
-document.addEventListener("click", (e) => {
-  const target = e.target;
-  
-  if (target.classList.contains("btn-ver-detalhes")) {
-    handleVerDetalhes(target.dataset.id);
-    return;
-  }
-  
-  if (target.classList.contains("btn-marcar")) {
-    handleMarcarRespondido(target.dataset.id);
-    return;
-  }
-  
-  if (target.classList.contains("btn-marcar-modal")) {
-    handleMarcarRespondido(target.dataset.id);
-    return;
-  }
-  
-  if (target.classList.contains("btn-responder")) {
-    handleResponderEmail(target.dataset.contato);
-    return;
-  }
-  
-  if (target.classList.contains("btn-fechar-modal")) {
-    handleFecharModal();
-    return;
-  }
+document.addEventListener("click", async (event) => {
+  const target = event.target;
 
-  if (target.closest(".btn-fechar-modal")) {
-    handleFecharModal();
-    return;
-  }
+  if (target.classList.contains("btn-ver-detalhes")) return handleVerDetalhes(target.dataset.id);
+  if (target.classList.contains("btn-marcar") || target.classList.contains("btn-marcar-modal")) return handleMarcarRespondido(target.dataset.id);
+  if (target.classList.contains("btn-responder")) return handleResponderEmail(target.dataset.contato);
+  if (target.classList.contains("btn-fechar-modal") || target.closest(".modal-overlay") === target) return handleFecharModal();
 });
 
 function bindPageEvents() {
   document.getElementById("btn-limpar")?.addEventListener("click", async () => {
     const feedback = document.getElementById("limpar-feedback");
-    if (!confirm("Tem certeza que deseja limpar mensagens respondidas há mais de 30 dias?")) return;
-    
-    feedback.textContent = "Limpando...";
+    if (!confirm("Limpar mensagens respondidas há mais de 30 dias?")) return;
+
+    setFeedback(feedback, "Limpando...", "info");
     try {
       const removidos = await limparContatosAntigos();
-      feedback.textContent = `${removidos} mensagem(ns) removida(s)`;
-      setTimeout(() => window.location.reload(), 1500);
+      setFeedback(feedback, `${removidos} mensagem(ns) removida(s).`, "success");
+      contatosCache = await getContatos();
     } catch (error) {
-      feedback.textContent = "Erro ao limpar: " + error.message;
+      setFeedback(feedback, `Erro ao limpar: ${error.message}`, "error");
     }
   });
 }
@@ -195,7 +170,7 @@ async function init() {
     bindPageEvents();
   } catch (error) {
     console.error(error);
-    app.innerHTML = "<p>Erro ao carregar mensagens.</p>";
+    app.innerHTML = '<main class="admin-main"><p>Erro ao carregar mensagens.</p></main>';
   }
 }
 

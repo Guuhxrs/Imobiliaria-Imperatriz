@@ -1,19 +1,25 @@
 import { initRouter } from "./src/router.js";
 
-window.addEventListener("error", (e) => {
-  console.error("Erro global:", e.error);
-  document.getElementById("app").innerHTML = `<div style="padding:20px;color:red;"><h1>Erro ao carregar</h1><pre>${e.error?.message || e.message}</pre></div>`;
+function renderFatalError(title, message) {
+  const app = document.getElementById("app");
+  if (!app) return;
+  app.innerHTML = `<main class="container error-state"><h1>${title}</h1><pre>${message}</pre></main>`;
+}
+
+window.addEventListener("error", (event) => {
+  console.error("Erro global:", event.error);
+  renderFatalError("Algo deu errado", message);
 });
 
-window.addEventListener("unhandledrejection", (e) => {
-  console.error("Promise não tratada:", e.reason);
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("Promise não tratada:", event.reason);
 });
 
 document.addEventListener("DOMContentLoaded", async () => {
   try {
     await initRouter();
-  } catch (err) {
-    console.error("Erro no initRouter:", err);
-    document.getElementById("app").innerHTML = `<div style="padding:20px;color:red;"><h1>Erro ao inicializar</h1><pre>${err.message}</pre></div>`;
+  } catch (error) {
+    console.error("Erro no initRouter:", error);
+    renderFatalError("Ops! Algo deu errado", error.message);
   }
 });

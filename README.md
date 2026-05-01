@@ -1,138 +1,204 @@
-# 🏠 Imperatriz Imóveis — Auditoria do Projeto
+# 🏠 Imperatriz Imóveis
 
-## 📊 Status Geral
-- Progresso estimado: **58%**
-- Pronto para produção: **NÃO**
+Uma aplicação web completa para gestão e divulgação de imóveis, desenvolvido com foco em performance, experiência do usuário e linguagem simples e acessível.
 
 ---
 
-## 🔧 Funcionalidades
+## 🚀 Demonstração
 
-- [x] Listagem de imóveis *(existe interface estática e serviço JS para buscar dados)*
-- [x] Página de detalhes *(layout pronto + controller específico)*
-- [x] Navegação entre páginas (SPA) *(hash router implementado)*
-- [ ] Sistema de busca *(campos visuais existem, mas sem integração real de consulta)*
-- [ ] Filtros (preço, cidade, tipo) *(UI existe; filtros não estão conectados à tela ativa)*
-- [ ] Formulário de contato *(botões/inputs existem, mas sem fluxo de envio persistido)*
-- [x] Integração com Supabase *(client, config, teste e importador implementados)*
+Acesse o site: **[imperatrizimoveis.com.br](https://imperatrizimoveis.com.br)** *(configure seu domínio)*
 
 ---
 
-## 🧠 Backend (Supabase)
+## 🎯 Funcionalidades
 
-- [ ] Tabelas criadas corretamente *(há schema sugerido, mas sem evidência de execução no ambiente)*
-- [ ] Relacionamentos funcionando *(não há modelagem relacional implementada no repositório)*
-- [ ] RLS configurado *(não há policies SQL versionadas no projeto)*
-- [ ] Policies funcionando *(não há testes/policies declaradas no repositório)*
-- [x] Inserção de dados OK *(script de importação em lote implementado para tabela `imoveis`)*
-- [x] Leitura de dados OK *(função de teste Supabase + serviços de leitura implementados)*
+### Para clientes (público)
+- **Busca de imóveis** com filtros por cidade, tipo de negócio (comprar/alugar) e tipo de imóvel
+- **Catálogo de imóveis** com visualização de fotos, preços, características e descrição
+- **Página de detalhes** com galeria de imagens e botão para WhatsApp
+- **Formulário de contato** para mensagens diretas
+- **Depoimentos** de clientes atendidos
+- **Design responsivo** que funciona em mobile, tablet e desktop
+- **Integração com WhatsApp** para contato direto
 
----
-
-## 🎨 Frontend
-
-- [x] Interface funcional *(páginas HTML completas e navegáveis visualmente)*
-- [x] Navegação fluida *(troca de rota por hash sem reload)*
-- [x] Responsividade (mobile) *(layouts com utilitários responsivos)*
-- [ ] Feedback de loading *(não padronizado no shell principal; apenas suporte parcial em controller)*
-- [ ] Tratamento de erros *(existem `try/catch` em módulos, mas sem UX de erro padronizada)*
-
----
-
-## 🔐 Segurança
-
-- [ ] Uso correto de chaves *(chave publishable está hardcoded em arquivo e HTML)*
-- [ ] Nenhum dado sensível exposto *(configuração está visível no frontend por design atual)*
-- [ ] Validação de inputs *(validação superficial; faltam validações robustas e sanitização)*
+### Para administradores (painel interno)
+- **Dashboard** com estatísticas do catálogo (total de imóveis, mensagens, preços)
+- **Gerenciamento de imóveis** (criar, editar, excluir)
+- **Upload de imagens** com múltiplas fotos por imóvel
+- **Gestão de mensagens** recebidas pelo formulário de contato
+- **Autenticação segura** com session gerenciada via servidor
 
 ---
 
-## ⚡ Performance
+## 🛠️ Tech Stack
 
-- [ ] Tempo de carregamento aceitável *(sem métricas Lighthouse/Web Vitals registradas)*
-- [ ] Imagens otimizadas *(imagens remotas grandes, sem estratégia de otimização/local fallback)*
-- [x] Código limpo *(modularização por serviços/controllers/config/router)*
+### Frontend
+- **HTML5 + JavaScript vanilla** (sem frameworks)
+- **CSS3** com custom properties e Flexbox/Grid
+- **Arquitetura SPA** com router baseado em hash
+- **Supabase JS SDK** para buscar dados
 
----
+### Backend
+- **Node.js** com Express
+- **Supabase** (PostgreSQL) como banco de dados
+- **Session JWT** comHttpOnly cookies
 
-## 📈 Experiência do Usuário (UX)
-
-- [x] Interface intuitiva *(hierarquia visual e seções claras)*
-- [x] Botões claros *(CTAs presentes e nomenclatura compreensível)*
-- [x] Navegação simples *(menu principal com roteamento SPA)*
-- [ ] Fluxo lógico *(fluxos de busca/contato/admin ainda não conectados ponta a ponta)*
-
----
-
-## 🚀 Produção
-
-- [ ] Sem erros no console *(importação automática pode falhar por schema/permissão e gerar logs de erro)*
-- [ ] Pronto para deploy *(faltam segurança, testes e validação backend)*
-- [x] Estrutura escalável *(arquitetura modular já preparada para expansão)*
+### Infraestrutura
+- **Supabase** para banco de dados e autenticação
+- **Hospedagem própria** (servidor Node.js)
 
 ---
 
-## 🔍 Problemas Identificados
+## 📂 Estrutura do Projeto
 
-### ❌ Problema: Inconsistência de tabela (`properties` vs `imoveis`)
-- Descrição: Os serviços principais usam tabela `properties`, enquanto teste/importador/schema usam `imoveis`.
-- Impacto: Leituras e escritas podem falhar dependendo da tabela existente no banco.
-- Como corrigir: Definir um padrão único (recomendado: `imoveis`) e alinhar todos os serviços/controllers.
-- Arquivo(s) afetado(s): `js/services/propertiesService.js`, `js/test-supabase.js`, `js/import-imoveis.js`, `supabase-imoveis-schema.md`.
-
-### ❌ Problema: Importação automática em toda carga da página
-- Descrição: O script `import-imoveis` roda no `DOMContentLoaded` e tenta inserir dados automaticamente.
-- Impacto: Pode gerar chamadas desnecessárias, erros recorrentes e ruído no console.
-- Como corrigir: Tornar importação manual (botão/flag admin) e exigir confirmação explícita.
-- Arquivo(s) afetado(s): `js/import-imoveis.js`, `index.html`.
-
-### ❌ Problema: Chave Supabase exposta em múltiplos pontos
-- Descrição: URL e chave publishable estão hardcoded no JS e no HTML.
-- Impacto: Acoplamento alto e risco de configuração incorreta entre ambientes.
-- Como corrigir: Centralizar somente em `window.__APP_CONFIG__` por ambiente e remover fallback hardcoded.
-- Arquivo(s) afetado(s): `js/config.js`, `index.html`.
-
-### ❌ Problema: Navegação SPA carrega HTML completo por `fetch`
-- Descrição: O router injeta `body.innerHTML` de páginas completas.
-- Impacto: Pode duplicar estruturas globais e scripts quando expandir o projeto.
-- Como corrigir: Migrar para renderização por componentes/templates parciais e estado central.
-- Arquivo(s) afetado(s): `js/router.js`, `index.html`, `home.html`, `listagem_de_imoveis.html`, `pagina_do_imovel.html`, `painel_administrativo.html`.
-
-### ❌ Problema: Funcionalidades centrais ainda sem integração real de UI
-- Descrição: Busca, filtros e contato estão visuais, mas sem fluxo persistido completo.
-- Impacto: Produto parece pronto, porém não entrega jornada fim-a-fim.
-- Como corrigir: Conectar eventos da interface aos serviços Supabase e adicionar estados de sucesso/erro/loading.
-- Arquivo(s) afetado(s): `index.html`, `listagem_de_imoveis.html`, `pagina_do_imovel.html`, `js/controllers/*.js`.
+```
+imperatriz-imoveis/
+├── admin/                  # Páginas do painel administrativo
+│   ├── dashboard.html
+│   ├── editar-imovel.html
+│   ├── imoveis.html
+│   ├── login.html
+│   └── mensagens.html
+├── src/
+│   ├── admin/             # JavaScript do painel admin
+│   ├── api/              # Integrações com Supabase
+│   ├── components/       # Componentes reutilizáveis (navbar, cards, etc)
+│   ├── pages/           # Páginas do site público
+│   ├── styles/          # CSS global
+│   └── utils/           # Funções utilitárias
+├── server/               # Servidor Express
+├── supabase/           # Scripts SQL do banco
+├── index.html          # Entry point público
+└── package.json
+```
 
 ---
 
-## 🔥 Prioridade de Correção
+## ⚡ Quick Start
 
-### 🔴 Crítico
-- Unificar tabela de dados entre todos os módulos (`imoveis` ou `properties`).
-- Revisar estratégia de importação automática para evitar escrita indevida em produção.
-- Definir e aplicar RLS + policies no Supabase.
+### 1. Clone o projeto
+```bash
+git clone https://github.com/seu-usuario/imperatriz-imoveis.git
+cd imperatriz-imoveis
+```
 
-### 🟠 Alto
-- Conectar busca/filtros da UI com consultas reais no banco.
-- Implementar formulário de contato com persistência e validação.
-- Padronizar tratamento de erro e estados de loading no frontend.
+### 2. Configure as variáveis de ambiente
+Crie um arquivo `.env` baseado no `.env.example`:
 
-### 🟡 Médio
-- Refatorar roteamento para templates/componentes parciais (evitar injeção de páginas completas).
-- Adicionar testes de integração para serviços Supabase e controllers.
-- Criar script de setup de banco versionado (migrações SQL).
+```env
+# Supabase (obrigatório)
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=sua-chave-anon
+SESSION_SECRET=uma-chave-secreta-random
 
-### 🟢 Baixo
-- Melhorar otimização de imagens e métricas de performance.
-- Ajustar microinterações e mensagens de feedback para UX.
-- Documentar convenções de código e fluxo de deploy.
+# API (opcional, para produção)
+API_BASE_URL=http://localhost:3000
+CRON_API_KEY=sua-chave-cron
+```
+
+### 3. Configure o Supabase
+
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. Execute os scripts SQL em `supabase/` na ordem:
+   - `admin-bootstrap.sql` — cria tabelas eadmin inicial
+   - `verificar-admin.sql` — verifica configuração
+
+### 4. Inicie o servidor
+```bash
+npm install
+npm start
+```
+
+Acesse: `http://localhost:3000`
 
 ---
 
-## 📌 Próximos Passos
+## 🔧 Configuração do Supabase
 
-1. Corrigir itens críticos
-2. Finalizar funcionalidades principais
-3. Melhorar UX
-4. Preparar para deploy
+### Tabelas criadas automaticamente
+
+- **imoveis** — catálogo de imóveis
+- **imagens** — fotos vinculadas aos imóveis
+- **contatos** — mensagens recebidas
+- **administradores** — usuários do painel admin
+
+### Políticas de acesso (RLS)
+
+O projeto usa Row Level Security para proteger dados sensíveis. O script `admin-bootstrap.sql` já configura as políticas necessárias.
+
+---
+
+## 👤 Primeiro Acesso Admin
+
+Após executar o bootstrap SQL no Supabase:
+
+1. Acesse `/admin/login.html`
+2. Use as credenciais criadas no script:
+   - **Email**: `admin@imperatriz.com`
+   - **Senha**: `@Imperatriz2024!`
+
+⚠️ **Altere a senha após o primeiro login!**
+
+---
+
+## 📱 Páginas do Site Público
+
+| Rota | Descrição |
+|------|----------|
+| `#home` | Página home com carousel e buscas |
+| `#imoveis?tipo=venda` | Imóveis à venda |
+| `#imoveis?tipo=aluguel` | Imóveis para alugar |
+| `#detalhes/{id}` | Detalhes de um imóvel |
+| `#contato` | Formulário de contato |
+| `#sobre` | Sobre a empresa |
+
+---
+
+## 📱 Páginas do Admin
+
+| Rota | Descrição |
+|------|----------|
+| `/admin/login.html` | Login de administrador |
+| `/admin/dashboard.html` | Estatísticas do catálogo |
+| `/admin/imoveis.html` | Gerenciar imóveis |
+| `/admin/mensagens.html` | Ver mensagens recebidas |
+
+---
+
+## 🎨 Decisões de Design
+
+### Linguagem simples
+Todos os textos foram escritos para **usuários comuns**, evitando jargões técnicos:
+- "Backend" → "sistema"
+- "Supabase" → removido completamente
+- "Erro de autenticação" → "Não conseguimos fazer seu login"
+
+### Layout responsivo
+- Mobile first com breakpoints em 720px e 980px
+- Grid automático de cards com `minmax()`
+- Imagens com `object-fit: cover`
+
+### Performance
+- Lazy loading de imagens
+- Router client-side (sem reload)
+- CSS e JS como módulos nativos (sem bundler)
+
+---
+
+## 📄 Licença
+
+MIT License — sinta-se livre para usar e adaptar para seu projeto.
+
+---
+
+## 🤝 Contribuindo
+
+1. Fork este repositório
+2. Crie uma branch (`git checkout -b feature/nova`)
+3. Commit suas mudanças (`git commit -m 'feat: nova feature'`)
+4. Push para a branch (`git push origin feature/nova`)
+5. Abra um Pull Request
+
+---
+
+**Desenvolvido com ❤️ para a Imperatriz Imóveis**

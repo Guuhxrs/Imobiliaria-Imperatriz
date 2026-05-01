@@ -16,7 +16,7 @@ function buildUrl(path) {
 export async function apiRequest(path, { method = "GET", body, headers = {} } = {}) {
   const response = await fetch(buildUrl(path), {
     method,
-    credentials: "same-origin",
+    credentials: "include",
     headers: {
       ...(body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...headers,

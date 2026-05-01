@@ -3,7 +3,6 @@ import {
   formatCurrencyBRL,
   getAmenidadesImovel,
   getLinhaSecundariaImovel,
-  parseDescricaoAnuncio,
 } from "../utils/helpers.js";
 
 function renderAmenidades(imovel) {
@@ -20,43 +19,42 @@ function renderAmenidades(imovel) {
 function renderCard(imovel) {
   const imageHtml = imovel.imagem_capa
     ? `<img src="${escapeHtml(imovel.imagem_capa)}" alt="${escapeHtml(imovel.titulo)}" draggable="false" loading="lazy" />`
-    : `<div class="card-img-placeholder">Sem imagem</div>`;
+    : '<div class="card-img-placeholder">Foto em breve</div>';
   const linhas = getLinhaSecundariaImovel(imovel);
-  const { observacaoValor } = parseDescricaoAnuncio(imovel.descricao);
 
   return `
-    <div class="card-destaque anuncio-card">
-      <div class="card-image-wrap">
+    <article class="card-destaque anuncio-card">
+      <a href="#detalhes/${encodeURIComponent(imovel.id)}" class="card-image-wrap">
         ${imageHtml}
-      </div>
+      </a>
       <div class="card-desc anuncio-card-body">
-        <span class="anuncio-kicker">Imperatriz Imoveis</span>
+        <span class="anuncio-kicker">Imperatriz Imóveis</span>
         <h3 class="anuncio-titulo">${escapeHtml(imovel.titulo)}</h3>
         ${linhas[0] ? `<p class="anuncio-linha principal">${escapeHtml(linhas[0])}</p>` : ""}
         ${linhas[1] ? `<p class="anuncio-linha">${escapeHtml(linhas[1])}</p>` : ""}
-        <p class="card-price anuncio-preco">Valor ${formatCurrencyBRL(imovel.preco)}</p>
-        ${observacaoValor ? `<p class="anuncio-observacao">${escapeHtml(observacaoValor)}</p>` : ""}
+        <p class="card-price anuncio-preco">${formatCurrencyBRL(imovel.preco)}</p>
         ${renderAmenidades(imovel)}
         <a href="#detalhes/${encodeURIComponent(imovel.id)}" class="btn-primary btn-ver-mais">Ver mais</a>
       </div>
-    </div>
+    </article>
   `;
 }
 
-export function renderCarrosselImoveis(imoveis, tituloCarrossel = "Imoveis em destaque", trackId = "cImgTrack") {
-  if (!imoveis || imoveis.length === 0) {
-    return ``;
-  }
+export function renderCarrosselImoveis(imoveis, tituloCarrossel = "Imóveis em destaque", trackId = "cImgTrack") {
+  if (!imoveis || imoveis.length === 0) return "";
 
   return `
     <section class="carrossel-imoveis-section animate-on-scroll">
-      <h2>${tituloCarrossel}</h2>
+      <div class="section-heading">
+        <span class="section-kicker">Destaques Imperatriz</span>
+        <h2>${tituloCarrossel}</h2>
+      </div>
       <div class="carrossel-imoveis-wrapper">
-        <button class="nav-control prev" id="btnPrev-${trackId}">❮</button>
+        <button class="nav-control prev" id="btnPrev-${trackId}" aria-label="Voltar imóveis">‹</button>
         <div class="carrossel-imoveis-track" id="${trackId}">
           ${imoveis.map(renderCard).join("")}
         </div>
-        <button class="nav-control next" id="btnNext-${trackId}">❯</button>
+        <button class="nav-control next" id="btnNext-${trackId}" aria-label="Avançar imóveis">›</button>
       </div>
     </section>
   `;
@@ -68,23 +66,19 @@ export function initCarrosselImoveis(trackId = "cImgTrack") {
 
   const btnPrev = document.getElementById(`btnPrev-${trackId}`);
   const btnNext = document.getElementById(`btnNext-${trackId}`);
-  const scrollAmount = 320;
+  const scrollAmount = 340;
 
-  if (btnPrev) {
-    btnPrev.addEventListener("click", () => {
-      track.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-    });
-  }
+  btnPrev?.addEventListener("click", () => {
+    track.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+  });
 
-  if (btnNext) {
-    btnNext.addEventListener("click", () => {
-      track.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    });
-  }
+  btnNext?.addEventListener("click", () => {
+    track.scrollBy({ left: scrollAmount, behavior: "smooth" });
+  });
 
   let isDown = false;
-  let startX;
-  let scrollLeft;
+  let startX = 0;
+  let scrollLeft = 0;
 
   track.addEventListener("mousedown", (event) => {
     isDown = true;
@@ -107,7 +101,6 @@ export function initCarrosselImoveis(trackId = "cImgTrack") {
     if (!isDown) return;
     event.preventDefault();
     const x = event.pageX - track.offsetLeft;
-    const walk = (x - startX) * 2;
-    track.scrollLeft = scrollLeft - walk;
+    track.scrollLeft = scrollLeft - (x - startX) * 1.7;
   });
 }

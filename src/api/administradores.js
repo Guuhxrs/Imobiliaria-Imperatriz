@@ -1,105 +1,153 @@
+import { apiRequest } from "./http.js";
 import { getSupabaseClient } from "./supabaseClient.js";
 
 const SESSION_KEY = "imperatriz:admin-session";
 
-async function sha256(text) {
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-export async function hashSenha(senha) {
-  return sha256(String(senha || ""));
-}
-
-export async function autenticarAdministrador({ email, senha }) {
-  console.log("[AdminAuth] Iniciando autenticação para:", email);
-  
-  const senhaHash = await hashSenha(senha);
-  console.log("[AdminAuth] Hash da senha calculado:", senhaHash.substring(0, 20) + "...");
-  
-  const supabase = getSupabaseClient();
-  console.log("[AdminAuth] Supabase client:", supabase ? "OK" : "NULO");
-
-  if (!supabase) {
-    throw new Error("Supabase não configurado. Contate o administrador.");
-  }
-
-  const { data, error } = await supabase
-    .from("administradores")
-    .select("id, email, nome, created_at")
-    .eq("email", String(email || "").trim().toLowerCase())
-    .eq("senha_hash", senhaHash)
-    .single();
-
-  console.log("[AdminAuth] Resultado query:", { data, error });
-
-  if (error || !data) {
-    console.error("[AdminAuth] Erro na query:", error);
-    throw new Error("Credenciais inválidas para administrador.");
-  }
-
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-  return data;
-}
-
-export function getAdministradorAutenticado() {
+function readCachedAdmin() {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-export function isAdministradorAutenticado() {
-  return Boolean(getAdministradorAutenticado());
+function saveCachedAdmin(admin) {
+  if (admin) localStorage.setItem(SESSION_KEY, JSON.stringify(admin));
 }
 
-export function logoutAdministrador() {
+function clearCachedAdmin() {
+  localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(SESSION_KEY);
 }
 
-export async function getQuantidadeAdministradores() {
-  const supabase = getSupabaseClient();
-  if (!supabase) return 0;
-  
-  const { count, error } = await supabase
-    .from("administradores")
-    .select("*", { count: "exact", head: true });
-  
-  if (error) {
-    console.error("Erro ao contar administradores:", error);
-    return 0;
+function normalizeCredentials({ email, senha, password }) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedPassword = String(password || senha || "");
+
+  if (!normalizedEmail || !normalizedPassword) {
+    throw new Error("Email e senha sao obrigatorios.");
   }
-  return count || 0;
+
+  return { email: normalizedEmail, password: normalizedPassword };
 }
 
-export async function criarAdministrador({ email, senha, nome }) {
+async function signInSupabase(email, password) {
   const supabase = getSupabaseClient();
-  
-  if (!supabase) {
-    throw new Error("Supabase não configurado. Contate o administrador.");
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) throw error;
+  if (!data?.session?.access_token) {
+    throw new Error("Supabase nao retornou uma sessao valida.");
   }
-  
-  const senha_hash = await hashSenha(senha);
-
-  const payload = {
-    email: String(email || "").trim().toLowerCase(),
-    senha_hash,
-    nome: String(nome || "").trim(),
-  };
-
-  const { data, error } = await supabase
-    .from("administradores")
-    .insert(payload)
-    .select("id, email, nome, created_at")
-    .single();
-
-  if (error) throw new Error(`Erro ao criar administrador: ${error.message}`);
 
   return data;
+}
+
+async function createServerSessionFromSupabase(session) {
+  const response = await apiRequest("/api/admin/login", {
+    method: "POST",
+    body: { accessToken: session.access_token },
+  });
+
+  if (!response?.admin) {
+    throw new Error("Servidor nao confirmou permissao administrativa.");
+  }
+
+  saveCachedAdmin(response.admin);
+  return response.admin;
+}
+
+export async function autenticarAdministrador(credentials) {
+  const { email, password } = normalizeCredentials(credentials || {});
+
+  try {
+    const { session } = await signInSupabase(email, password);
+    return await createServerSessionFromSupabase(session);
+  } catch (authError) {
+    const canTryLegacyBootstrap = authError?.message === "Invalid login credentials";
+    if (!canTryLegacyBootstrap) {
+      clearCachedAdmin();
+      try {
+        await getSupabaseClient().auth.signOut();
+        await apiRequest("/api/admin/logout", { method: "POST" });
+      } catch {
+        // Best-effort cleanup after a rejected admin validation.
+      }
+
+      console.error("Erro login:", authError?.message || authError);
+      throw new Error(authError?.message || "Nao foi possivel entrar.");
+    }
+  }
+
+  try {
+    const legacyResponse = await apiRequest("/api/admin/login", {
+      method: "POST",
+      body: { email, senha: password },
+    });
+
+    const { session } = await signInSupabase(email, password);
+    await createServerSessionFromSupabase(session);
+    saveCachedAdmin(legacyResponse.admin);
+    return legacyResponse.admin;
+  } catch (err) {
+    clearCachedAdmin();
+    try {
+      await getSupabaseClient().auth.signOut();
+      await apiRequest("/api/admin/logout", { method: "POST" });
+    } catch {
+      // Best-effort cleanup after a failed login attempt.
+    }
+
+    console.error("Erro login:", err?.message || err);
+    throw new Error(err?.message || "Nao foi possivel entrar.");
+  }
+}
+
+export async function getAdministradorAutenticado({ force = false } = {}) {
+  const cached = readCachedAdmin();
+  if (cached && !force) return cached;
+
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+
+    if (data?.session?.access_token) {
+      return await createServerSessionFromSupabase(data.session);
+    }
+
+    const response = await apiRequest("/api/admin/session");
+    if (response?.admin) {
+      saveCachedAdmin(response.admin);
+      return response.admin;
+    }
+
+    clearCachedAdmin();
+    return null;
+  } catch {
+    clearCachedAdmin();
+    return null;
+  }
+}
+
+export function isAdministradorAutenticado() {
+  return Boolean(readCachedAdmin());
+}
+
+export async function logoutAdministrador() {
+  clearCachedAdmin();
+
+  try {
+    await getSupabaseClient().auth.signOut();
+  } catch (error) {
+    console.error("Erro logout Supabase:", error?.message || error);
+  }
+
+  await apiRequest("/api/admin/logout", { method: "POST" });
+}
+
+export async function getQuantidadeAdministradores() {
+  const response = await apiRequest("/api/admin/bootstrap-status");
+  return Number(response?.totalAdministradores || 0);
 }

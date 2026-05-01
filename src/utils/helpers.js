@@ -1,7 +1,9 @@
 export function formatCurrencyBRL(value) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(
-    Number(value || 0)
-  );
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 }
 
 function normalizeLine(text = "") {
@@ -79,10 +81,7 @@ export function getAmenidadesImovel(imovel) {
     imovel?.vagas ? `${imovel.vagas} vaga${Number(imovel.vagas) > 1 ? "s" : ""}` : "",
     /vagas?/
   );
-  appendIfMissing(
-    imovel?.area ? `${imovel.area} m²` : "",
-    /(m2)/
-  );
+  appendIfMissing(imovel?.area ? `${imovel.area} m²` : "", /(m2|m²)/);
 
   return amenidades;
 }

@@ -18,6 +18,7 @@ import {
   limparContatosAntigos,
   removerImovel,
   uploadImagem,
+  validarAdministradorPorAccessToken,
 } from "./supabase.js";
 import {
   clearSessionCookie,
@@ -32,6 +33,7 @@ const rootDir = path.resolve(__dirname, "..");
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+app.set("trust proxy", 1);
 
 // Rate limiting simples (memória em memória)
 const rateLimitStore = new Map();
@@ -110,32 +112,51 @@ app.post(
   "/api/admin/login",
   asyncHandler(async (req, res) => {
     const email = String(req.body?.email || "").trim().toLowerCase();
-    const senha = String(req.body?.senha || "");
+    const senha = String(req.body?.senha || req.body?.password || "");
+    const accessToken = String(req.body?.accessToken || req.body?.access_token || "");
 
-    if (!email || !senha) {
-      res.status(422).json({ error: "Email e senha sao obrigatorios." });
-      return;
+    try {
+      if (accessToken) {
+        const admin = await validarAdministradorPorAccessToken(accessToken);
+        setSessionCookie(res, admin, req);
+        res.json({ admin, authSession: true });
+        return;
+      }
+
+      if (!email || !senha) {
+        res.status(422).json({ error: "Email e senha sao obrigatorios." });
+        return;
+      }
+
+      const { admin, authUserSynced } = await autenticarAdministrador(email, hashSenha(senha), senha);
+      setSessionCookie(res, admin, req);
+      res.json({ admin, authUserSynced });
+    } catch (error) {
+      const statusCode = error.statusCode || (error.message === "Credenciais invalidas." ? 401 : 500);
+      console.error("[AdminLogin] Erro login:", {
+        statusCode,
+        email: email || undefined,
+        viaSupabaseAuth: Boolean(accessToken),
+        message: error.message,
+      });
+      res.status(statusCode).json({ error: error.message || "Erro inesperado no login." });
     }
-
-    const admin = await autenticarAdministrador(email, hashSenha(senha));
-    setSessionCookie(res, admin);
-    res.json({ admin });
   })
 );
 
 app.post("/api/admin/logout", (req, res) => {
-  clearSessionCookie(res);
+  clearSessionCookie(res, req);
   res.json({ ok: true });
 });
 
 app.get("/api/admin/session", (req, res) => {
   const session = getSessionFromRequest(req);
   if (!session) {
-    res.status(401).json({ error: "Sessao expirada." });
+    res.json({ admin: null, authenticated: false });
     return;
   }
 
-  res.json({ admin: session });
+  res.json({ admin: session, authenticated: true });
 });
 
 app.get(

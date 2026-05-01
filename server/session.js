@@ -49,21 +49,29 @@ export function parseSessionValue(rawValue) {
   }
 }
 
-export function setSessionCookie(res, admin) {
+function shouldUseSecureCookie(req) {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+
+  const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").split(",")[0].trim();
+  return Boolean(req?.secure || forwardedProto === "https");
+}
+
+export function setSessionCookie(res, admin, req) {
   res.cookie(COOKIE_NAME, createSessionValue(admin), {
     httpOnly: true,
     sameSite: "lax",
-    secure: config.isProduction,
+    secure: shouldUseSecureCookie(req),
     path: "/",
     maxAge: SESSION_TTL_MS,
   });
 }
 
-export function clearSessionCookie(res) {
+export function clearSessionCookie(res, req) {
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
     sameSite: "lax",
-    secure: config.isProduction,
+    secure: shouldUseSecureCookie(req),
     path: "/",
   });
 }

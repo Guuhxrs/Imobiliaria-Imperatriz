@@ -128,7 +128,16 @@ export async function countAdministradores() {
   return Number(count || 0);
 }
 
-export async function autenticarAdministrador(email, senhaHash) {
+function normalizeAdmin(data) {
+  return {
+    id: data.id,
+    email: data.email,
+    nome: data.nome || "Administrador",
+    created_at: data.created_at || null,
+  };
+}
+
+async function buscarAdministradorPorEmail(email) {
   const { data, error } = await supabase
     .from("administradores")
     .select("id, email, nome, senha_hash, created_at")
@@ -136,14 +145,86 @@ export async function autenticarAdministrador(email, senhaHash) {
     .maybeSingle();
 
   if (error) throw new Error("Nao foi possivel validar o administrador.");
-  if (!data || data.senha_hash !== senhaHash) throw new Error("Credenciais invalidas.");
+  return data;
+}
 
+async function findAuthUserByEmail(email) {
+  const targetEmail = sanitizeText(email).toLowerCase();
+  let page = 1;
+
+  while (page <= 10) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 100 });
+    if (error) throw new Error(`Erro ao consultar usuarios do Auth: ${error.message}`);
+
+    const user = data?.users?.find((item) => item.email?.toLowerCase() === targetEmail);
+    if (user) return user;
+    if (!data?.users?.length || data.users.length < 100) return null;
+    page += 1;
+  }
+
+  return null;
+}
+
+async function sincronizarUsuarioAuth(email, password) {
+  if (!password) return null;
+
+  const existingUser = await findAuthUserByEmail(email);
+  if (existingUser) {
+    const { data, error } = await supabase.auth.admin.updateUserById(existingUser.id, {
+      password,
+    });
+    if (error) throw new Error(`Erro ao atualizar usuario do Auth: ${error.message}`);
+    return data?.user || existingUser;
+  }
+
+  const { data, error } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+
+  if (error) throw new Error(`Erro ao criar usuario no Auth: ${error.message}`);
+  return data?.user || null;
+}
+
+export async function autenticarAdministrador(email, senhaHash, password) {
+  const data = await buscarAdministradorPorEmail(email);
+  if (!data || data.senha_hash !== senhaHash) {
+    const error = new Error("Credenciais invalidas.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const authUser = await sincronizarUsuarioAuth(data.email, password);
   return {
-    id: data.id,
-    email: data.email,
-    nome: data.nome || "Administrador",
-    created_at: data.created_at || null,
+    admin: normalizeAdmin(data),
+    authUserSynced: Boolean(authUser),
   };
+}
+
+export async function validarAdministradorPorAccessToken(accessToken) {
+  const token = sanitizeText(accessToken);
+  if (!token) {
+    const error = new Error("Token de autenticacao ausente.");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  const { data: userData, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !userData?.user?.email) {
+    const error = new Error(authError?.message || "Sessao Supabase invalida.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const admin = await buscarAdministradorPorEmail(userData.user.email);
+  if (!admin) {
+    const error = new Error("Usuario autenticado nao possui permissao administrativa.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return normalizeAdmin(admin);
 }
 
 export async function listarImoveis({ limit, cidade, tipo, status, search, tipo_negocio } = {}) {

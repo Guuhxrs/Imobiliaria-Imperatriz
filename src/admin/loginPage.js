@@ -10,25 +10,22 @@ function renderLoginPage() {
   return `
     <section class="login-panel">
       <div class="login-copy">
-        <p class="admin-kicker">Imperatriz Imoveis</p>
-        <h1>Login administrativo</h1>
-        <p>
-          Esta area controla os imoveis exibidos no site publico e deve ser acessada
-          apenas por administradores autorizados.
-        </p>
-        <a href="../index.html">Voltar ao site publico</a>
+        <span class="admin-kicker">Painel Imperatriz</span>
+        <h1>Entre para cuidar do catálogo.</h1>
+        <p>Gerencie imóveis, fotos e mensagens dos clientes.</p>
+        <a href="../index.html">Voltar ao site público</a>
       </div>
 
       <div class="login-card">
         <form id="admin-login-form" class="admin-form">
           <label>
             E-mail
-            <input type="email" name="email" placeholder="admin@imperatriz.com" required />
+            <input type="email" name="email" placeholder="admin@imperatriz.com" autocomplete="email" required />
           </label>
 
           <label>
             Senha
-            <input type="password" name="senha" placeholder="Digite sua senha" required />
+            <input type="password" name="senha" placeholder="Digite sua senha" autocomplete="current-password" required />
           </label>
 
           <button type="submit" class="primary-button">Entrar</button>
@@ -52,13 +49,10 @@ async function showBootstrapHint() {
     hint.hidden = false;
     hint.innerHTML = `
       <strong>Nenhum administrador encontrado.</strong>
-      <p>
-        Rode o script <code>supabase/admin-bootstrap.sql</code> no SQL Editor do Supabase
-        para liberar o primeiro acesso administrativo.
-      </p>
+      <p>Rode o script <code>supabase/admin-bootstrap.sql</code> no SQL Editor do Supabase para liberar o primeiro acesso.</p>
     `;
   } catch (error) {
-    console.error(error);
+    console.error("Erro ao verificar bootstrap:", error?.message || error);
   }
 }
 
@@ -67,7 +61,9 @@ async function handleSubmit(event) {
 
   const form = event.currentTarget;
   const feedback = document.getElementById("admin-login-feedback");
+  const submit = form.querySelector("button[type='submit']");
   setFeedback(feedback, "Validando credenciais...", "info");
+  if (submit) submit.disabled = true;
 
   try {
     const formData = new FormData(form);
@@ -79,8 +75,9 @@ async function handleSubmit(event) {
     setFeedback(feedback, "Login confirmado. Redirecionando...", "success");
     window.location.replace(getRedirectAfterLogin());
   } catch (error) {
-    console.error(error);
-    setFeedback(feedback, error.message || "Nao foi possivel entrar.", "error");
+    console.error("Erro login:", error?.message || error);
+    setFeedback(feedback, error.message || "Não foi possível entrar.", "error");
+    if (submit) submit.disabled = false;
   }
 }
 
@@ -97,8 +94,8 @@ async function init() {
       window.location.replace(getRedirectAfterLogin());
       return;
     }
-  } catch (e) {
-    console.warn("Erro ao verificar sessão:", e);
+  } catch (error) {
+    console.warn("Erro ao verificar sessão:", error?.message || error);
   }
 
   app.innerHTML = renderLoginPage();

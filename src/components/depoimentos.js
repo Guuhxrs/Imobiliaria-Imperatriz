@@ -1,35 +1,38 @@
 const depoimentos = [
   {
     nome: "Maria Silva",
-    texto: "Excelente atendimento! A equipe foi muito atenciosa e me ajudou a encontrar o imóvel perfeito para minha família.",
-    nota: 5
+    texto: "Excelente atendimento. A equipe foi leve, direta e me ajudou a encontrar o imóvel perfeito para minha família.",
+    nota: 5,
   },
   {
     nome: "Carlos Oliveira",
-    texto: "Profissionais muito competentes. Comprei minha casa com segurança e rapidez. Recomendo!",
-    nota: 5
+    texto: "Comprei minha casa com segurança e rapidez. O processo foi claro do primeiro contato até a assinatura.",
+    nota: 5,
   },
   {
     nome: "Ana Paula Santos",
-    texto: "Fui atendida com muito respeito e dedicação. Minha experiência foi incrível do início ao fim.",
-    nota: 5
-  }
+    texto: "Fui atendida com respeito e dedicação. Minha experiência foi incrível do início ao fim.",
+    nota: 5,
+  },
 ];
 
 export function renderDepoimentos() {
   return `
     <section class="depoimentos-section">
-      <h2>O que dizem nossos clientes</h2>
+      <div class="section-heading center">
+        <span class="section-kicker">Quem comprou conta</span>
+        <h2>Atendimento próximo, busca sem enrolação</h2>
+      </div>
       <div class="depoimentos-grid">
-        ${depoimentos.map(d => `
-          <div class="depoimento-card">
-            <div class="depoimento-stars">
-              ${Array(d.nota).fill('<span>★</span>').join('')}
+        ${depoimentos.map((depoimento) => `
+          <article class="depoimento-card">
+            <div class="depoimento-stars" aria-label="${depoimento.nota} estrelas">
+              ${Array(depoimento.nota).fill("<span>★</span>").join("")}
             </div>
-            <p class="depoimento-texto">"${d.texto}"</p>
-            <p class="depoimento-autor">— ${d.nome}</p>
-          </div>
-        `).join('')}
+            <p class="depoimento-texto">"${depoimento.texto}"</p>
+            <p class="depoimento-autor">- ${depoimento.nome}</p>
+          </article>
+        `).join("")}
       </div>
     </section>
   `;
