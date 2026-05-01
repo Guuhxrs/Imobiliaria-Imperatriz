@@ -152,8 +152,7 @@ textarea {
   align-items: center;
   padding: 96px clamp(24px, 8vw, 120px);
   background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
+  background-position: center;
   opacity: 0;
   transition: opacity 0.45s ease;
 }
@@ -897,10 +896,6 @@ select:focus {
 
   .carousel-slide {
     padding: 72px 24px;
-  }
-
-  .carousel-slide {
-    background-position: center center;
   }
 
   .carousel-btn {
