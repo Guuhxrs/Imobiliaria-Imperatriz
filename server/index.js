@@ -312,9 +312,19 @@ app.get("/app-config.js", (req, res) => {
   const apiBaseUrl = process.env.API_BASE_URL || "";
   const supabaseUrl = process.env.SUPABASE_URL || "";
   const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || "";
-  res.type("application/javascript").send(
-    `window.__APP_CONFIG__ = Object.freeze({ API_BASE_URL: ${JSON.stringify(apiBaseUrl)}, SUPABASE_URL: ${JSON.stringify(supabaseUrl)}, SUPABASE_ANON_KEY: ${JSON.stringify(supabaseAnonKey)} });`
-  );
+
+  const script = `
+(function() {
+  var APP_CONFIG = Object.freeze({
+    API_BASE_URL: ${JSON.stringify(apiBaseUrl)},
+    SUPABASE_URL: ${JSON.stringify(supabaseUrl)},
+    SUPABASE_ANON_KEY: ${JSON.stringify(supabaseAnonKey)}
+  });
+  Object.defineProperty(window, "__APP_CONFIG__", { value: APP_CONFIG, writable: false });
+})();
+  `.trim();
+
+  res.type("application/javascript").send(script);
 });
 app.use("/src", express.static(path.join(rootDir, "src"), { index: false }));
 app.use("/admin", express.static(path.join(rootDir, "admin"), { index: false }));
